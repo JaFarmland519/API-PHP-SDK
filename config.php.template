@@ -1,0 +1,12 @@
+<?php
+
+
+define("BASE_URL",'https://go.trackvia.com');
+define("USER",'user@company.com');
+define("PASS",'password');
+define("USER_KEY",'12345');
+define("PORT",'443');
+
+
+
+?>
