@@ -21,3 +21,31 @@ require_once 'lib/Api.php';
 use Trackvia\Api;
 $api = new Api("userName", "password", "12345abc");
 ```
+
+Then make calls against the api, list views:
+
+```PHP
+$views = $api->getViewList();
+```
+
+Query records with "fish" in them from view 2:
+```PHP
+$records = $api->getRecordsInViewSearch(2, 'fish');
+```
+
+Create records
+```PHP
+$newRecord = ['data'=>array(
+    [
+        'Customer'=>'Acme',
+        'License'=>7654321,
+        'Maintenance'=>1234567,
+        'State'=>'CO',
+        'Account Manager'=>'Joe',
+        'Close Date'=> 2014-09-19
+    ]
+)];
+
+$record = $api->createRecord(2, $newRecord);
+```
+
