@@ -16,6 +16,8 @@ Note, the API is only available for Enterprise level accounts
 
 First instantiate a TrackVia API object
 
+```PHP
 require_once 'lib/Api.php';
 use Trackvia\Api;
 $api = new Api("userName", "password", "12345abc");
+```
