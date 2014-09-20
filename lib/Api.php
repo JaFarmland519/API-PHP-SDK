@@ -115,7 +115,7 @@ class Api extends EventDispatcher {
             ->setData($data);
 
         if ($contentType) {
-            $this->request->setContentType("application/$contentType");
+            $this->request->setContentType($contentType);
         }
 
         $this->trigger('api_request_send', array('url' => $url, 'http_method' => $httpMethod, 'data' => $data));
@@ -273,7 +273,7 @@ class Api extends EventDispatcher {
      */
     public function createRecord($viewId, $data){
         $url = '/openapi/views/' . $viewId . '/records';
-        $content_type = "json;charset=UTF-8";
+        $content_type = "application/json;charset=UTF-8";
         $json = json_encode($data);
         return $this->api($url, 'POST', $json, $content_type);
     }
@@ -287,7 +287,7 @@ class Api extends EventDispatcher {
      */
     public function updateRecord($viewId, $recordId, $data){
         $url = '/openapi/views/' . $viewId . '/records/' . $recordId;
-        $content_type = "json;charset=UTF-8";
+        $content_type = "application/json;charset=UTF-8";
         $json = json_encode($data);
         return $this->api($url, 'PUT', $json, $content_type);
     }
