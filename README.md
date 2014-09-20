@@ -3,6 +3,9 @@ A PHP SDK for accessing your Trackvia application data.
 ## Features
 
 1. Simple client to access the Trackvia API
+
+## Requires
+The cURL PHP library
  
 ## API Access and The User Key
 

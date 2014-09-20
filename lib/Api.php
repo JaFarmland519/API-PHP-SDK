@@ -24,7 +24,6 @@ class Api extends EventDispatcher {
     public function __construct($user, 
                         $password, 
                         $userKey, 
-                        $port = 443, 
                         $baseUrl = "https://go.trackvia.com/") {
         $this->baseUrl = $baseUrl;
         $this->userKey = $userKey;
@@ -155,12 +154,11 @@ class Api extends EventDispatcher {
     {
         $response = $this->request->getResponse();
         if (is_array($response) && isset($response['error_description'])) {
-            switch ($response['error_description']) {
-                case self::EXPIRED_ACCESS_TOKEN:
-                    $this->isTokenExpired = true;
-                    // return here so we don't throw this error
-                    // so we can use the refresh token
-                    return false;
+            if($response['error_description'].strpos('Access token expired') !== false) {
+                $this->isTokenExpired = true;
+                // return here so we don't throw this error
+                // so we can use the refresh token
+                return false;
             }
 
             // throw an \Exception with the returned error message
@@ -304,6 +302,162 @@ class Api extends EventDispatcher {
     }
 
 
+
+    /**
+     * Upload a file to a record in a view
+     * @param the numeric ID of the view the record is in
+     * @param the numeric ID of the record you want to update
+     * @param the name of the field to upload the file to.
+     * @param the path to the file to upload
+     * @param the content type of the file, defaults to application/octet-stream
+     * @return a map containing the newly updated record
+     */
+    public function uploadFileToRecord($viewId, $recordId, $fieldName, $filePath,
+            $contentType = 'application/octet-stream'){
+        $url = '/openapi/views/' . $viewId . '/records/' . $recordId;
+        $url = $url . '/files/' . urlencode($fieldName);
+        
+        $filePath = realpath($filePath);
+        $data = file_get_contents($filePath);
+        $fileName = call_user_func("end", explode(DIRECTORY_SEPARATOR, $filePath));
+
+        $body[] = implode("\r\n", array(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"",
+            "Content-Type: $contentType",
+            "",
+            $data, 
+        ));
+
+        //print_r ($body);
+        //exit;
+
+         // generate safe boundary 
+        do {
+            $boundary = "---------------------" . md5(mt_rand() . microtime());
+        } while (preg_grep("/{$boundary}/", $body));
+
+        // add boundary for each parameters
+        array_walk($body, function (&$part) use ($boundary) {
+            $part = "--{$boundary}\r\n{$part}";
+        });
+    
+        // add final boundary
+        $body[] = "--{$boundary}--";
+        $body[] = "";
+
+        $contentType = "multipart/form-data; boundary={$boundary}";
+
+        return $this->api($url, 'POST', implode("\r\n", $body), $contentType);
+    }
+
+
+
+    /**
+     * Download a file from a field in a record in a view
+     * @param the numeric ID of the view the record is in
+     * @param the numeric ID of the record you want to get the file from
+     * @param the name of the field to download the file from.
+     * @return binary data of the file
+     */
+    public function downloadFileFromRecord($viewId, $recordId, $fieldName, $params = null){
+
+        $url = 'openapi/views/' . $viewId . '/records/' . $recordId;
+        $url = $url . '/files/' . urlencode($fieldName);
+
+        $url = $this->baseUrl . $url;
+        //authenticate
+        $this->authenticate();
+        $accessToken = $this->auth->getAccessToken();
+        // add the access token onto the url
+        $pre = "?";
+        if(strpos($url, "?") !== false){
+            $pre = "&";
+        }
+        $url = $url . $pre.'access_token='.urlencode($accessToken);
+        //add the user_key
+        $url = $url . '&user_key=' . $this->userKey;
+        if($params != null){
+            foreach($params as $key=>$value){
+                $url = $url . '&'.$key.'='.urlencode($value);
+            }
+        }
+
+        echo "\nURL: ". $url . "\n";
+
+        $data = file_get_contents($url);
+        $jsonData = json_decode($data);
+
+        if (is_array($jsonData) && isset($jsonData['error_description'])) {
+            if($jsonData['error_description'].strpos('Access token expired') !== false) {
+                $this->auth->clearAccessToken();
+                $url = 'openapi/views/' . $viewId . '/records/' . $recordId;
+                $url = $url . '/files/' . urlencode($fieldName);
+
+                $url = $this->baseUrl . $url;
+                //authenticate
+                $this->authenticate();
+                $accessToken = $this->auth->getAccessToken();
+                // add the access token onto the url
+                $pre = "?";
+                if(strpos($url, "?") !== false){
+                    $pre = "&";
+                }
+                $url = $url . $pre.'access_token='.urlencode($accessToken);
+                //add the user_key
+                $url = $url . '&user_key=' . $this->userKey;
+                if($params != null){
+                    foreach($params as $key=>$value){
+                        $url = $url . '&'.$key.'='.urlencode($value);
+                    }
+                }
+
+                $data = file_get_contents($url);
+            }
+        }
+        return $data;
+
+    }
+
+     /**
+     * Download an image from a field in a record in a view with the given width
+     * @param the numeric ID of the view the record is in
+     * @param the numeric ID of the record you want to get the file from
+     * @param the name of the field to download the file from.
+     * @param the desired width of the image.
+     * @return binary data of the file
+     */
+    public function downloadFileFromRecordWidth($viewId, $recordId, $fieldName, $width){
+        $param = array('width'=>$width);
+        return $this->downloadFileFromRecord($viewId, $recordId, $fieldName, $param);
+    }
+
+    /**
+     * Download an image from a field in a record in a view with the given width
+     * @param the numeric ID of the view the record is in
+     * @param the numeric ID of the record you want to get the file from
+     * @param the name of the field to download the file from.
+     * @param the desired max dimension of the image
+     * @return binary data of the file
+     */
+    public function downloadFileFromRecordMaxDim($viewId, $recordId, $fieldName, $maxDim){
+        $param = array('maxDimension'=>$maxDim);
+        return $this->downloadFileFromRecord($viewId, $recordId, $fieldName, $param);
+    }
+        
+
+    /**
+     * Delete a file from a field in a record in a view
+     * @param the numeric ID of the view the record is in
+     * @param the numeric ID of the record you want to delete the file from
+     * @param the name of the field to delete the file from.
+     */    
+    public function deleteFileFromRecord($viewId, $recordId, $fieldName){
+
+        $url = 'openapi/views/' . $viewId . '/records/' . $recordId;
+        $url = $url . '/files/' . urlencode($fieldName);
+        return $this->api($url, 'DELETE');
+    }
+    
 
 
 
