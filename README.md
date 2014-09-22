@@ -6,6 +6,7 @@ A PHP SDK for accessing your Trackvia application data.
 
 ## Requires
 The cURL PHP library
+Tested on PHP 5.4
  
 ## API Access and The User Key
 
