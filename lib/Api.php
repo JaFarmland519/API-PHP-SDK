@@ -301,7 +301,15 @@ class Api extends EventDispatcher {
         return $this->api($url, 'DELETE');
     }
 
-
+    /**
+     * Delete all records in a view
+     * @param the numeric ID of the view the records are in
+     * @return Nothing if successful, else an error message
+     */
+    public function deleteAllRecords($viewId){
+        $url = '/openapi/views/' . $viewId . '/records/all';
+        return $this->api($url, 'DELETE');
+    }
 
     /**
      * Upload a file to a record in a view
