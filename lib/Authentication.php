@@ -54,12 +54,20 @@ class Authentication extends EventDispatcher
     /**
      * @param TrackviaRequst $request
      */
-    public function __construct(Request $request, $user, $password, $baseUrl)
+    public function __construct(Request $request, $user, $password, $accessToken, $baseUrl)
     {
         $this->request = $request;
 
         $this->clientId     = 'TrackViaAPI';
-        $this->setUserCreds($user, $password);
+
+        if ($accessToken) {
+            $this->setTokenData(["value" => $accessToken]);
+        }
+
+        if ($user && $password) {
+            $this->setUserCreds($user, $password);
+        }
+
         $this->baseUrl = $baseUrl;
         
     }
@@ -195,7 +203,7 @@ class Authentication extends EventDispatcher
      */
     public function isAccessTokenExpired()
     {
-        if (!isset($this->tokenData['expires_at']) || $this->tokenData['expires_at'] <= time()) {
+        if (isset($this->tokenData['expires_at']) && $this->tokenData['expires_at'] <= time()) {
             echo "Expired access token\n";
             return true;
         }
