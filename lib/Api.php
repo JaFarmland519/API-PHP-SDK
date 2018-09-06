@@ -8,7 +8,6 @@ require_once 'Authentication.php';
 
 class Api extends EventDispatcher {
 
-
     private $request;
 
     private $user;
@@ -21,15 +20,18 @@ class Api extends EventDispatcher {
 
     private $userKey;
 
-    public function __construct($user, 
-                        $password, 
-                        $userKey, 
+    public function __construct(
+                        $userKey,
+                        $accessToken = "", 
                         $baseUrl = "https://go.trackvia.com/") {
         $this->baseUrl = $baseUrl;
         $this->userKey = $userKey;
         $this->request = new Request();
-        $this->auth = new Authentication($this->request, $user, $password, $baseUrl);
-        $this->auth->on('new_access_token', array($this, 'onNewAccessToken'));
+
+        if ($accessToken && $accessToken !== "") {
+            $this->auth = new Authentication($this->request, "", "", $accessToken, $baseUrl);
+            $this->auth->on('new_access_token', array($this, 'onNewAccessToken'));
+        }
     }
 
     /**
@@ -41,21 +43,9 @@ class Api extends EventDispatcher {
         $this->trigger('new_token', $data);
     }
 
-    public function login(){
-
-        $this->user = $this->getUser();
-
-        if(!empty($this->user['accounts'])){
-            $account = array_shift($this->user['accounts']);
-            if(isset($account['id'])){
-                $this->accountId = $account['id'];
-            } else {
-                throw new \Exception('Unable to determine accountId, this is not good');
-            }
-        } else {
-            throw new \Exception('Unable to find account for user, will not be able to get data');
-        }
-        return $this->user;
+    public function login($user, $password){
+        $this->auth = new Authentication($this->request, $user, $password, "", $this->baseUrl);
+        $this->auth->on('new_access_token', array($this, 'onNewAccessToken'));
     }
 
     /**
@@ -154,7 +144,7 @@ class Api extends EventDispatcher {
     {
         $response = $this->request->getResponse();
         if (is_array($response) && isset($response['error_description'])) {
-            if($response['error_description'].strpos('Access token expired') !== false) {
+            if(strpos($response['error_description'], 'Access token expired') !== false && $this->auth->hasRefreshToken()) {
                 $this->isTokenExpired = true;
                 // return here so we don't throw this error
                 // so we can use the refresh token

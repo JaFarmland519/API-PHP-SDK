@@ -12,9 +12,7 @@ Tested on PHP 5.4
 
 Obtain a user key by enabling the API at:
 
-  https://go.trackvia.com/#/my-info
-
-Note, the API is only available for Enterprise level accounts
+  https://go.trackvia.com/#/account (Click API Access)
 
 ## Usage
 
@@ -24,6 +22,22 @@ First instantiate a TrackVia API object
 require_once 'lib/Api.php';
 use Trackvia\Api;
 $api = new Api("userName", "password", "12345abc");
+```
+
+There are two ways to authorize the API to access information in your account:
+
+1. With API User Auth Token (recommended):
+```PHP
+$api = new Api("myApiKey", "myAccessToken");
+// Successfully authenticated..
+// Make additional requests
+```
+2. With username and password:
+```PHP
+$api = new Api("myApiKey");
+$api->login("username", "password");
+// Successfully authenticated..
+// Make additional requests
 ```
 
 Then make calls against the api, list views:
